@@ -1,0 +1,8 @@
+{
+  "name": "Immersive AR Tutor Engine",
+  "description": "Transform static text into interactive 3D augmented reality lessons with a voice-active AI tutor.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
