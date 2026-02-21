@@ -1,4 +1,5 @@
 export enum AppMode {
+  LANDING = 'LANDING',
   INSTRUCTOR = 'INSTRUCTOR',
   STUDENT_SELECTION = 'STUDENT_SELECTION',
   AR_SESSION = 'AR_SESSION'
@@ -72,9 +73,12 @@ export interface IntelligenceReport {
   overallScore: number; // 0-100
   conceptStrengthMap: Record<string, 'strong' | 'moderate' | 'weak'>;
   trickHandlingAbility: number;
-  cognitiveSpeed: 'Fast' | 'Moderate' | 'Slow';
+  cognitiveSpeed: 'Fast' | 'Moderate' | 'Methodical' | 'Slow';
   learningVelocity: number;
-  calibrationType: 'Overconfident' | 'Underconfident' | 'Well-Calibrated';
-  readinessPrediction: 'Not Ready' | 'Needs Practice' | 'Interview Ready';
+  calibrationType: 'Overconfident' | 'Underconfident' | 'Well-Calibrated' | 'Erratic';
+  readinessPrediction: 'Danger: Fragile Knowledge' | 'Not Ready' | 'Needs Practice' | 'Interview Ready';
   readinessReasoning: string;
+  avgCognitiveLoad: number;
+  guessProbability: number;
+  dropoutRiskIndex: 'Low' | 'Medium' | 'High';
 }

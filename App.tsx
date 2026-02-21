@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { LandingPage } from './components/LandingPage';
 import { LessonInput } from './components/LessonInput';
 import { TopicSelector } from './components/TopicSelector';
 import { ARSession } from './components/ARSession';
@@ -6,7 +7,7 @@ import { AppMode, SubTopic, SceneConfig } from './types';
 import { Layout } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [mode, setMode] = useState<AppMode>(AppMode.INSTRUCTOR);
+  const [mode, setMode] = useState<AppMode>(AppMode.LANDING);
   const [subTopics, setSubTopics] = useState<SubTopic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<SubTopic | null>(null);
 
@@ -34,32 +35,36 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-screen relative overflow-hidden bg-black text-white">
-      {/* Background Decor (only visible if not in AR mode with camera) */}
-      {mode !== AppMode.AR_SESSION && (
+      {/* Background Decor (only visible if not in AR mode and not Landing Page) */}
+      {mode !== AppMode.AR_SESSION && mode !== AppMode.LANDING && (
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-           <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] bg-blue-900/20 rounded-full blur-[120px] opacity-60" />
-           <div className="absolute bottom-[-20%] right-[-10%] w-[80%] h-[80%] bg-indigo-900/20 rounded-full blur-[120px] opacity-60" />
+          <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] bg-blue-900/20 rounded-full blur-[120px] opacity-60" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[80%] h-[80%] bg-indigo-900/20 rounded-full blur-[120px] opacity-60" />
         </div>
       )}
 
       {/* Main Content Area */}
       <main className="relative z-10 h-full w-full">
+        {mode === AppMode.LANDING && (
+          <LandingPage onStart={() => setMode(AppMode.INSTRUCTOR)} />
+        )}
+
         {mode === AppMode.INSTRUCTOR && (
           <LessonInput onAnalyzeComplete={handleAnalysisComplete} />
         )}
 
         {mode === AppMode.STUDENT_SELECTION && (
-          <TopicSelector 
-            topics={subTopics} 
-            onSelect={handleTopicSelect} 
+          <TopicSelector
+            topics={subTopics}
+            onSelect={handleTopicSelect}
             onBack={handleBackToInput}
           />
         )}
 
         {mode === AppMode.AR_SESSION && selectedTopic && (
-          <ARSession 
-            topic={selectedTopic} 
-            onExit={handleBackToTopics} 
+          <ARSession
+            topic={selectedTopic}
+            onExit={handleBackToTopics}
           />
         )}
       </main>

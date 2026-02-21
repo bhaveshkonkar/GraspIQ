@@ -8,7 +8,6 @@ interface Props {
   onSelect: (topic: SubTopic) => void;
   onBack: () => void;
 }
-
 export const TopicSelector: React.FC<Props> = ({ topics, onSelect, onBack }) => {
   return (
     <div className="h-full p-6 md:p-12 overflow-y-auto">

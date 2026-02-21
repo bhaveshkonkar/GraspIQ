@@ -175,40 +175,102 @@ export const generateSceneConfig = async (topic: SubTopic): Promise<SceneConfig>
 
 export const generateIntelligenceReport = async (profile: UserSkillProfile, concept: string): Promise<IntelligenceReport> => {
   const prompt = `
-    Generate a Final Candidate Intelligence Report for concept: "${concept}".
-    User Performance Data:
-    - Accuracy: ${profile.accuracy}%
-    - Avg Response Time: ${profile.avgResponseTime}s
-    - Streak: ${profile.streak}
-    - Total Questions: ${profile.totalQuestions}
-    - Misconception Tags: ${profile.misconceptionTags.join(', ')}
-    - Learning Velocity: ${profile.learningVelocity}
+    You are the GraspIQ Performance Genome Profiler, an advanced cognitive analysis engine.
+    Generate a highly accurate, mathematically grounded Candidate Intelligence Report for: "${concept}".
     
-    Predict interview readiness and provide a concept strength map.
-    Return JSON.
+    Raw Telemetry to Analyze:
+    - Overall Accuracy: ${profile.accuracy}%
+    - Questions Attempted: ${profile.totalQuestions}
+    - Avg Response Time: ${profile.avgResponseTime}s
+    - Hesitation Patterns (ms delay per question): [${profile.hesitationPatterns.map(v => (v * 1000).toFixed(0)).join(', ')}]
+    - Reported Confidence (0-100% per question): [${profile.confidenceHistory.join(', ')}]
+    - Correctness Streak ending at: ${profile.streak}
+    - Identified Misconceptions: ${profile.misconceptionTags.join(', ')}
+    - Learning Velocity (v_L): ${profile.learningVelocity}
+
+    Instructions for Synthesizing the Performance Genome (Output strict JSON):
+    1. Estimate "Avg Cognitive Load" (0.5 to 3.0 scale). High response times and high misconception tags = high load (> 1.5).
+    2. Estimate "Guess Probability" (0.0 to 1.0 scale). Correct answers with high hesitation + low confidence = high guess probability.
+    3. Calibration Type: Compare Accuracy vs Avg Confidence. Is the user 'Overconfident', 'Underconfident', 'Well-Calibrated', or 'Erratic'?
+    4. Readiness Prediction: Only output 'Interview Ready' if Accuracy > 80%, Guess Probability < 0.35, and Calibration is Well-Calibrated. Output 'Danger: Fragile Knowledge' if Guess Probability > 0.60. Otherwise, 'Needs Practice' or 'Not Ready'.
+    5. Dropout Risk Index: 'Low', 'Medium', or 'High' based on streak drops and cognitive load fatigue.
+    6. Ensure overallScore (0-100) mathematically reflects actual mastery avoiding generic 80/100 scores.
+    7. conceptStrengths: Generate an array of 3-5 sub-concepts related to "${concept}", setting 'conceptName' and 'strength' ('strong', 'moderate', or 'weak').
+    8. cognitiveSpeed: Analyze the response time and set strictly to one of: 'Fast', 'Moderate', 'Methodical', or 'Slow'.
+    9. trickHandlingAbility: Score from 1 to 10 based on how they handled the trickiness and their guess probability.
+    
+    Structure the JSON precisely to the schema keys without markdown blocks outside the JSON if requested natively.
   `;
 
-  const response = await ai.models.generateContent({
-    model: modelFlash,
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          overallScore: { type: Type.NUMBER },
-          conceptStrengthMap: { type: Type.OBJECT },
-          trickHandlingAbility: { type: Type.NUMBER },
-          cognitiveSpeed: { type: Type.STRING },
-          learningVelocity: { type: Type.NUMBER },
-          calibrationType: { type: Type.STRING },
-          readinessPrediction: { type: Type.STRING },
-          readinessReasoning: { type: Type.STRING }
-        },
-        required: ['overallScore', 'conceptStrengthMap', 'trickHandlingAbility', 'cognitiveSpeed', 'learningVelocity', 'calibrationType', 'readinessPrediction', 'readinessReasoning']
+  try {
+    const response = await ai.models.generateContent({
+      model: modelFlash,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            overallScore: { type: Type.NUMBER },
+            conceptStrengths: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  conceptName: { type: Type.STRING },
+                  strength: { type: Type.STRING }
+                },
+                required: ['conceptName', 'strength']
+              }
+            },
+            trickHandlingAbility: { type: Type.NUMBER },
+            cognitiveSpeed: { type: Type.STRING },
+            learningVelocity: { type: Type.NUMBER },
+            calibrationType: { type: Type.STRING },
+            readinessPrediction: { type: Type.STRING },
+            readinessReasoning: { type: Type.STRING },
+            avgCognitiveLoad: { type: Type.NUMBER },
+            guessProbability: { type: Type.NUMBER },
+            dropoutRiskIndex: { type: Type.STRING }
+          },
+          required: [
+            'overallScore', 'conceptStrengths', 'trickHandlingAbility', 'cognitiveSpeed',
+            'learningVelocity', 'calibrationType', 'readinessPrediction', 'readinessReasoning',
+            'avgCognitiveLoad', 'guessProbability', 'dropoutRiskIndex'
+          ]
+        }
       }
-    }
-  });
+    });
 
-  return JSON.parse(response.text || '{}');
+    const data = JSON.parse(response.text || '{}');
+
+    // Map array back to the Record expected by the UI
+    const conceptMap: Record<string, 'strong' | 'moderate' | 'weak'> = {};
+    if (data.conceptStrengths && Array.isArray(data.conceptStrengths)) {
+      data.conceptStrengths.forEach((item: any) => {
+        conceptMap[item.conceptName] = item.strength;
+      });
+    }
+
+    return {
+      ...data,
+      conceptStrengthMap: conceptMap
+    };
+  } catch (err) {
+    console.error('[IntelligenceReport] Gemini failed to generate report:', err);
+    // Return a safe fallback rather than crashing
+    return {
+      overallScore: 0,
+      conceptStrengthMap: {},
+      trickHandlingAbility: 0,
+      cognitiveSpeed: 'Unknown' as any,
+      learningVelocity: 0,
+      calibrationType: 'Erratic',
+      readinessPrediction: 'Danger: Fragile Knowledge',
+      readinessReasoning: 'Analysis engine failure. Insufficient telemetry.',
+      avgCognitiveLoad: 0,
+      guessProbability: 1.0,
+      dropoutRiskIndex: 'High'
+    };
+  }
 };

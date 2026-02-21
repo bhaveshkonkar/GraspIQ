@@ -512,7 +512,7 @@ export const ARSession: React.FC<Props> = ({ topic, onExit }) => {
                     {timeLeft}s
                   </span>
                   <div className={`w-1.5 h-1.5 rounded-full ml-1 ${currentQuestion.trickiness >= 8 ? 'bg-red-500 animate-pulse' :
-                      currentQuestion.trickiness >= 5 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                    currentQuestion.trickiness >= 5 ? 'bg-amber-500' : 'bg-emerald-500'}`}
                     title={`Trickiness: ${currentQuestion.trickiness}/10`}
                   />
                 </div>
@@ -629,67 +629,79 @@ export const ARSession: React.FC<Props> = ({ topic, onExit }) => {
                 </div>
               </div>
 
-              {/* Stat cards */}
-              <div className="grid grid-cols-4 gap-3 mb-8">
+              {/* Stat cards (Now 6 metrics) */}
+              <div className="grid grid-cols-3 gap-3 mb-8">
                 {[
                   { label: 'Accuracy', value: `${userProfile.accuracy}%`, sub: `${userProfile.totalQuestions} questions`, color: 'border-emerald-500/20', icon: <Target className="w-4 h-4 text-emerald-400" /> },
-                  { label: 'Avg Speed', value: `${userProfile.avgResponseTime}s`, sub: 'per question', color: 'border-blue-500/20', icon: <Timer className="w-4 h-4 text-blue-400" /> },
-                  { label: 'Calibration', value: report.calibrationType, sub: 'confidence type', color: 'border-purple-500/20', icon: <Activity className="w-4 h-4 text-purple-400" /> },
-                  { label: 'Velocity', value: `${report.learningVelocity?.toFixed(1) ?? '0.0'}x`, sub: 'improvement rate', color: 'border-amber-500/20', icon: <TrendingUp className="w-4 h-4 text-amber-400" /> },
+                  { label: 'Guess Prob', value: `${((report.guessProbability || 0) * 100).toFixed(0)}%`, sub: 'fragile pass risk', color: (report.guessProbability > 0.6) ? 'border-red-500/40 bg-red-500/10' : 'border-blue-500/20', icon: <Activity className={`w-4 h-4 ${report.guessProbability > 0.6 ? 'text-red-400 animate-pulse' : 'text-blue-400'}`} /> },
+                  { label: 'Fatigue / Load', value: `${(report.avgCognitiveLoad || 1.0).toFixed(2)}x`, sub: 'deviation from norm', color: 'border-purple-500/20', icon: <Brain className="w-4 h-4 text-purple-400" /> },
+                  { label: 'Calibration', value: report.calibrationType, sub: 'confidence type', color: 'border-indigo-500/20', icon: <Eye className="w-4 h-4 text-indigo-400" /> },
+                  { label: 'Velocity', value: `${report.learningVelocity?.toFixed(1) ?? '0.0'}x`, sub: 'learning rate', color: 'border-amber-500/20', icon: <TrendingUp className="w-4 h-4 text-amber-400" /> },
+                  { label: 'Dropout Risk', value: report.dropoutRiskIndex || 'Unknown', sub: 'frustration index', color: report.dropoutRiskIndex === 'High' ? 'border-red-500/40 bg-red-500/10' : 'border-slate-500/20', icon: <AlertTriangle className={`w-4 h-4 ${report.dropoutRiskIndex === 'High' ? 'text-red-500' : 'text-slate-400'}`} /> },
                 ].map(({ label, value, sub, color, icon }) => (
-                  <div key={label} className={`p-4 rounded-2xl bg-white/5 border ${color}`}>
-                    <div className="flex items-center gap-2 mb-2">{icon}<p className="text-[9px] text-slate-500 uppercase tracking-wider font-bold">{label}</p></div>
-                    <p className="text-lg font-black text-white">{value}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>
+                  <div key={label} className={`p-4 rounded-2xl bg-white/5 border ${color} relative overflow-hidden`}>
+                    <div className="flex items-center gap-2 mb-2 relative z-10">{icon}<p className="text-[9px] text-slate-500 uppercase tracking-wider font-bold">{label}</p></div>
+                    <p className={`text-xl font-black relative z-10 ${label === 'Danger: Fragile Knowledge' ? 'text-red-400' : 'text-white'}`}>{value}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5 relative z-10">{sub}</p>
                   </div>
                 ))}
               </div>
 
               {/* Readiness + Mastery grid */}
               <div className="grid grid-cols-2 gap-6 mb-8">
-                {/* Readiness */}
-                <div className={`p-6 rounded-2xl border ${report.readinessPrediction === 'Interview Ready' ? 'bg-emerald-500/10 border-emerald-500/20' :
-                    report.readinessPrediction === 'Needs Practice' ? 'bg-amber-500/10 border-amber-500/20' :
-                      'bg-red-500/10 border-red-500/20'}`}>
+                {/* Readiness Prediction */}
+                <div className={`p-6 rounded-2xl border ${report.readinessPrediction === 'Interview Ready' ? 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.15)]' :
+                  report.readinessPrediction.includes('Danger') ? 'bg-red-950/40 border-red-500/40 shadow-[0_0_40px_rgba(239,68,68,0.2)]' :
+                    'bg-amber-500/10 border-amber-500/20'}`}>
                   <div className="flex items-center gap-2 mb-3">
-                    <ArrowUpRight className="w-4 h-4" />
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Interview Readiness</p>
+                    {report.readinessPrediction.includes('Danger') ? <AlertTriangle className="w-5 h-5 text-red-500 animate-pulse" /> : <ArrowUpRight className="w-4 h-4 text-emerald-400" />}
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Readiness Prediction</p>
                   </div>
-                  <p className="text-xl font-black text-white mb-2">{report.readinessPrediction}</p>
-                  <p className="text-xs text-slate-400 leading-relaxed italic">"{report.readinessReasoning}"</p>
+                  <p className={`text-2xl font-black mb-2 ${report.readinessPrediction.includes('Danger') ? 'text-red-400' : 'text-white'}`}>{report.readinessPrediction}</p>
+                  <p className="text-sm text-slate-300 leading-relaxed italic border-l-2 border-white/20 pl-3">"{report.readinessReasoning}"</p>
                 </div>
 
                 {/* Concept strength map */}
                 <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
                   <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-4">Concept Mastery Map</p>
                   <div className="space-y-2">
-                    {Object.entries(report.conceptStrengthMap).slice(0, 5).map(([concept, strength]) => (
-                      <div key={concept} className="flex items-center justify-between">
-                        <span className="text-xs text-slate-300 truncate flex-1 mr-2">{concept}</span>
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-1 bg-slate-700 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full ${strength === 'strong' ? 'w-full bg-emerald-500' : strength === 'moderate' ? 'w-2/3 bg-amber-500' : 'w-1/3 bg-red-500'}`} />
+                    {Object.entries(report.conceptStrengthMap || {}).length > 0 ? (
+                      Object.entries(report.conceptStrengthMap).slice(0, 5).map(([concept, strength]) => (
+                        <div key={concept} className="flex items-center justify-between">
+                          <span className="text-xs text-slate-300 truncate flex-1 mr-2">{concept}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-1 bg-slate-700 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full ${strength === 'strong' ? 'w-full bg-emerald-500' : strength === 'moderate' ? 'w-2/3 bg-amber-500' : 'w-1/3 bg-red-500'}`} />
+                            </div>
+                            <span className={`text-[8px] font-black uppercase w-12 ${strength === 'strong' ? 'text-emerald-400' : strength === 'moderate' ? 'text-amber-400' : 'text-red-400'}`}>
+                              {strength === 'strong' ? '🟢' : strength === 'moderate' ? '🟡' : '🔴'} {strength}
+                            </span>
                           </div>
-                          <span className={`text-[8px] font-black uppercase w-12 ${strength === 'strong' ? 'text-emerald-400' : strength === 'moderate' ? 'text-amber-400' : 'text-red-400'}`}>
-                            {strength === 'strong' ? '🟢' : strength === 'moderate' ? '🟡' : '🔴'} {strength}
-                          </span>
                         </div>
+                      ))
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-white/5 bg-black/20">
+                        <AlertTriangle className="w-4 h-4 text-slate-500 mb-2" />
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Insufficient Data</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Cognitive speed */}
-              <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 mb-6">
-                <Zap className="w-5 h-5 text-amber-400 shrink-0" />
-                <div>
-                  <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Cognitive Speed</p>
-                  <p className="text-base font-black text-white">{report.cognitiveSpeed} Thinker</p>
+              <div className="flex items-center gap-4 p-5 rounded-2xl bg-[#0b1224] border border-blue-500/20 mb-8 shadow-inner">
+                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                  <Cpu className="w-5 h-5 text-blue-400" />
                 </div>
-                <div className="ml-auto text-right">
-                  <p className="text-[9px] text-slate-500">Guess Probability</p>
-                  <p className="text-sm font-black text-red-400">{analytics.guessProbability}%</p>
+                <div>
+                  <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Kinematic processing signature</p>
+                  <p className="text-base font-black text-white flex items-center gap-2">
+                    {report.cognitiveSpeed || 'Unknown'} Thinker
+                    <span className="text-xs font-medium text-slate-400 border border-white/10 px-2 py-0.5 rounded-md bg-white/5">
+                      Trick Handling: {report.trickHandlingAbility || '0'}/10
+                    </span>
+                  </p>
                 </div>
               </div>
 
