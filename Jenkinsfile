@@ -18,13 +18,7 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                bat '''
-                    if exist package-lock.json (
-                        call npm ci
-                    ) else (
-                        call npm install
-                    )
-                '''
+                bat 'npm install'
             }
         }
 
@@ -36,18 +30,7 @@ pipeline {
 
         stage('Test') {
             steps {
-                script {
-                    int hasTests = bat(
-                        returnStatus: true,
-                        script: 'node -e "const p=require(\\'./package.json\\'); process.exit(p.scripts && p.scripts.test ? 0 : 1)"'
-                    )
-
-                    if (hasTests == 0) {
-                        bat 'npm test'
-                    } else {
-                        echo 'No test script configured. Test stage skipped.'
-                    }
-                }
+                bat 'npm test --if-present'
             }
         }
     }
@@ -58,7 +41,7 @@ pipeline {
         }
 
         failure {
-            echo 'Pipeline failed. Check the stage logs above.'
+            echo 'Pipeline failed. Check Console Output.'
         }
 
         always {
